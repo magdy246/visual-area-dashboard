@@ -1,11 +1,19 @@
-import React from 'react';
-import { Card, CardBody, CardHeader, Button, Input, Textarea, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Tooltip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Checkbox, Chip } from "@heroui/react";
+import React, { useEffect } from 'react';
+import {
+  Card, CardBody, CardHeader, Button, Input, Textarea, Table,
+  TableHeader, TableColumn, TableBody, TableRow, TableCell,
+  Tooltip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter,
+  useDisclosure, Checkbox, Chip
+} from "@heroui/react";
 import { Icon } from '@iconify/react';
-import { initialPricingPlans } from '../data/mock-data';
+import { db } from '../firebase'; // your firebase setup file
+import {
+  collection, getDocs, addDoc, updateDoc, deleteDoc, doc
+} from "firebase/firestore";
 import { PricingPlan } from '../types/data-types';
 
 export const PricingManager: React.FC = () => {
-  const [pricingPlans, setPricingPlans] = React.useState<PricingPlan[]>(initialPricingPlans);
+  const [pricingPlans, setPricingPlans] = React.useState<PricingPlan[]>([]);
   const [currentPlan, setCurrentPlan] = React.useState<PricingPlan | null>(null);
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [formData, setFormData] = React.useState({
@@ -17,6 +25,23 @@ export const PricingManager: React.FC = () => {
     isPopular: false,
     backgroundColor: '#f9eadb',
   });
+
+  const pricingRef = collection(db, "pricingPlans");
+
+  const fetchPricingPlans = async () => {
+    const data = await getDocs(pricingRef);
+    const plans = data.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      price: parseFloat(doc.data().price),
+      features: doc.data().features || []
+    })) as PricingPlan[];
+    setPricingPlans(plans);
+  };
+
+  useEffect(() => {
+    fetchPricingPlans();
+  }, []);
 
   const handleAddNew = () => {
     setCurrentPlan(null);
@@ -46,8 +71,9 @@ export const PricingManager: React.FC = () => {
     onOpen();
   };
 
-  const handleDelete = (id: string) => {
-    setPricingPlans(pricingPlans.filter(plan => plan.id !== id));
+  const handleDelete = async (id: string) => {
+    await deleteDoc(doc(db, "pricingPlans", id));
+    fetchPricingPlans();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -65,42 +91,32 @@ export const PricingManager: React.FC = () => {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (formData.title && formData.price > 0) {
       const features = formData.features
         .split('\n')
         .map(feature => feature.trim())
         .filter(feature => feature !== '');
-      
+
+      const payload = {
+        title: formData.title,
+        price: formData.price.toString(), // as string for Firebase
+        currency: formData.currency,
+        period: formData.period,
+        features,
+        isPopular: formData.isPopular,
+        backgroundColor: formData.backgroundColor,
+      };
+
       if (currentPlan) {
-        // Update existing plan
-        setPricingPlans(pricingPlans.map(plan => 
-          plan.id === currentPlan.id ? { 
-            ...plan, 
-            title: formData.title,
-            price: formData.price,
-            currency: formData.currency,
-            period: formData.period,
-            features,
-            isPopular: formData.isPopular,
-            backgroundColor: formData.backgroundColor,
-          } : plan
-        ));
+        const planDoc = doc(db, "pricingPlans", currentPlan.id);
+        await updateDoc(planDoc, payload);
       } else {
-        // Add new plan
-        const newPlan: PricingPlan = {
-          id: Date.now().toString(),
-          title: formData.title,
-          price: formData.price,
-          currency: formData.currency,
-          period: formData.period,
-          features,
-          isPopular: formData.isPopular,
-          backgroundColor: formData.backgroundColor,
-        };
-        setPricingPlans([...pricingPlans, newPlan]);
+        await addDoc(pricingRef, payload);
       }
+
       onClose();
+      fetchPricingPlans();
     }
   };
 
@@ -117,11 +133,7 @@ export const PricingManager: React.FC = () => {
       <Card className="bg-beige dark:bg-[#1f1f1f]">
         <CardHeader className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-woodBrown dark:text-lightWood">Pricing Plans</h2>
-          <Button 
-            color="primary" 
-            endContent={<Icon icon="lucide:plus" />}
-            onPress={handleAddNew}
-          >
+          <Button color="primary" endContent={<Icon icon="lucide:plus" />} onPress={handleAddNew}>
             Add New Plan
           </Button>
         </CardHeader>
@@ -139,10 +151,7 @@ export const PricingManager: React.FC = () => {
                 <TableRow key={plan.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div 
-                        className="w-6 h-6 rounded-full" 
-                        style={{ backgroundColor: plan.backgroundColor }}
-                      />
+                      <div className="w-6 h-6 rounded-full" style={{ backgroundColor: plan.backgroundColor }} />
                       <span className="font-medium">{plan.title}</span>
                     </div>
                   </TableCell>
@@ -172,23 +181,12 @@ export const PricingManager: React.FC = () => {
                   <TableCell>
                     <div className="flex gap-2">
                       <Tooltip content="Edit plan">
-                        <Button 
-                          isIconOnly 
-                          size="sm" 
-                          variant="light" 
-                          onPress={() => handleEdit(plan)}
-                        >
+                        <Button isIconOnly size="sm" variant="light" onPress={() => handleEdit(plan)}>
                           <Icon icon="lucide:edit" />
                         </Button>
                       </Tooltip>
                       <Tooltip content="Delete plan" color="danger">
-                        <Button 
-                          isIconOnly 
-                          size="sm" 
-                          variant="light" 
-                          color="danger"
-                          onPress={() => handleDelete(plan.id)}
-                        >
+                        <Button isIconOnly size="sm" variant="light" color="danger" onPress={() => handleDelete(plan.id)}>
                           <Icon icon="lucide:trash" />
                         </Button>
                       </Tooltip>
@@ -209,79 +207,21 @@ export const PricingManager: React.FC = () => {
               <ModalBody>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-4">
-                    <Input
-                      label="Plan Title"
-                      name="title"
-                      value={formData.title}
-                      onChange={handleInputChange}
-                      placeholder="e.g. Basic Package"
-                      variant="bordered"
-                    />
-                    
+                    <Input label="Plan Title" name="title" value={formData.title} onChange={handleInputChange} placeholder="e.g. Basic Package" variant="bordered" />
                     <div className="flex gap-2">
-                      <Input
-                        label="Currency"
-                        name="currency"
-                        value={formData.currency}
-                        onChange={handleInputChange}
-                        placeholder="$"
-                        variant="bordered"
-                        className="w-20"
-                      />
-                      <Input
-                        label="Price"
-                        name="price"
-                        type="number"
-                        value={formData.price.toString()}
-                        onChange={handleInputChange}
-                        placeholder="99"
-                        variant="bordered"
-                        className="flex-1"
-                      />
+                      <Input label="Currency" name="currency" value={formData.currency} onChange={handleInputChange} placeholder="$" variant="bordered" className="w-20" />
+                      <Input label="Price" name="price" type="number" value={formData.price.toString()} onChange={handleInputChange} placeholder="99" variant="bordered" className="flex-1" />
                     </div>
-                    
-                    <Input
-                      label="Period"
-                      name="period"
-                      value={formData.period}
-                      onChange={handleInputChange}
-                      placeholder="e.g. per month, per project"
-                      variant="bordered"
-                    />
-                    
-                    <Checkbox
-                      isSelected={formData.isPopular}
-                      onValueChange={handleCheckboxChange}
-                    >
-                      Mark as Popular
-                    </Checkbox>
+                    <Input label="Period" name="period" value={formData.period} onChange={handleInputChange} placeholder="e.g. per month, per project" variant="bordered" />
+                    <Checkbox isSelected={formData.isPopular} onValueChange={handleCheckboxChange}>Mark as Popular</Checkbox>
                   </div>
-                  
                   <div className="space-y-4">
-                    <Textarea
-                      label="Features (one per line)"
-                      name="features"
-                      value={formData.features}
-                      onChange={handleInputChange}
-                      placeholder="4 Hours of Coverage
-100 Digital Images
-Online Gallery"
-                      variant="bordered"
-                      minRows={5}
-                    />
-                    
+                    <Textarea label="Features (one per line)" name="features" value={formData.features} onChange={handleInputChange} placeholder="4 Hours of Coverage\n100 Digital Images\nOnline Gallery" variant="bordered" minRows={5} />
                     <div>
                       <p className="text-sm mb-2">Background Color:</p>
                       <div className="flex flex-wrap gap-2">
                         {colorOptions.map((color) => (
-                          <Button
-                            key={color.value}
-                            className="w-10 h-10 p-0 min-w-0"
-                            style={{ backgroundColor: color.value }}
-                            isIconOnly
-                            variant={formData.backgroundColor === color.value ? "bordered" : "flat"}
-                            onPress={() => setFormData({...formData, backgroundColor: color.value})}
-                          >
+                          <Button key={color.value} className="w-10 h-10 p-0 min-w-0" style={{ backgroundColor: color.value }} isIconOnly variant={formData.backgroundColor === color.value ? "bordered" : "flat"} onPress={() => setFormData({ ...formData, backgroundColor: color.value })}>
                             {formData.backgroundColor === color.value && (
                               <Icon icon="lucide:check" className="text-white" />
                             )}
@@ -293,12 +233,8 @@ Online Gallery"
                 </div>
               </ModalBody>
               <ModalFooter>
-                <Button variant="flat" onPress={onClose}>
-                  Cancel
-                </Button>
-                <Button color="primary" onPress={handleSubmit}>
-                  {currentPlan ? 'Update' : 'Add'}
-                </Button>
+                <Button variant="flat" onPress={onClose}>Cancel</Button>
+                <Button color="primary" onPress={handleSubmit}>{currentPlan ? 'Update' : 'Add'}</Button>
               </ModalFooter>
             </>
           )}

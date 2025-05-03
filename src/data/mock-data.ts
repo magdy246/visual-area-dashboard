@@ -1,4 +1,4 @@
-import { SocialLink, Project, PricingPlan, ParallaxSection } from '../types/data-types';
+import { SocialLink, Project, PricingPlan, ParallaxSection, ContactInfo } from '../types/data-types';
 
 export const initialSocialLinks: SocialLink[] = [
   {
@@ -116,9 +116,32 @@ export const initialPricingPlans: PricingPlan[] = [
 export const initialParallaxSection: ParallaxSection = {
   id: '1',
   title: 'Capture Your Moments',
-  subtitle: 'Professional Photography & Videography',
-  description: 'We specialize in creating stunning visuals that tell your story. From weddings to corporate events, our team delivers exceptional quality.',
   backgroundUrl: 'https://img.heroui.chat/image/landscape?w=1920&h=1080&u=5',
-  buttonText: 'Book Now',
-  buttonUrl: '#contact',
 };
+
+export const initialContactInfo: ContactInfo[] = [
+  {
+    id: '1',
+    type: 'address',
+    label: 'Main Office',
+    value: '123 Photography Lane, Visual City, VC 12345',
+    icon: 'lucide:map-pin',
+    isMain: true,
+  },
+  {
+    id: '2',
+    type: 'phone',
+    label: 'Customer Support',
+    value: '+1 (555) 123-4567',
+    icon: 'lucide:phone',
+    isMain: true,
+  },
+  {
+    id: '3',
+    type: 'email',
+    label: 'General Inquiries',
+    value: 'info@visualarea.com',
+    icon: 'lucide:mail',
+    isMain: true,
+  }
+];

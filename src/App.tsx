@@ -6,6 +6,7 @@ import { SocialLinksManager } from './components/social-links-manager';
 import { ProjectsManager } from './components/projects-manager';
 import { PricingManager } from './components/pricing-manager';
 import { ParallaxManager } from './components/parallax-manager';
+import { ContactManager } from './components/contact-manager';
 
 export default function App() {
   const { theme, setTheme } = useTheme();
@@ -100,6 +101,17 @@ export default function App() {
             }
           >
             <ParallaxManager />
+          </Tab>
+          <Tab
+            key="contact"
+            title={
+              <div className="flex items-center gap-2">
+                <Icon icon="lucide:map-pin" />
+                <span>Contact Us</span>
+              </div>
+            }
+          >
+            <ContactManager />
           </Tab>
         </Tabs>
       </main>

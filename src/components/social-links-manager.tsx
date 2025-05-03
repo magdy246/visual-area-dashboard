@@ -1,11 +1,24 @@
 import React from 'react';
-import { Card, CardBody, CardHeader, Button, Input, Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Tooltip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Divider } from "@heroui/react";
+import {
+  Card, CardBody, CardHeader, Button, Input, Table, TableHeader, TableColumn,
+  TableBody, TableRow, TableCell, Tooltip, Modal, ModalContent,
+  ModalHeader, ModalBody, ModalFooter, useDisclosure
+} from "@heroui/react";
 import { Icon } from '@iconify/react';
-import { initialSocialLinks } from '../data/mock-data';
 import { SocialLink } from '../types/data-types';
 
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from 'firebase/firestore';
+import { db } from '../firebase';
+
 export const SocialLinksManager: React.FC = () => {
-  const [socialLinks, setSocialLinks] = React.useState<SocialLink[]>(initialSocialLinks);
+  const [socialLinks, setSocialLinks] = React.useState<SocialLink[]>([]);
   const [currentLink, setCurrentLink] = React.useState<SocialLink | null>(null);
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
   const [formData, setFormData] = React.useState({
@@ -13,6 +26,19 @@ export const SocialLinksManager: React.FC = () => {
     url: '',
     icon: '',
   });
+
+  // Fetch data on mount
+  React.useEffect(() => {
+    const fetchLinks = async () => {
+      const snapshot = await getDocs(collection(db, 'socialMediaLinks'));
+      const linksData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as SocialLink[];
+      setSocialLinks(linksData);
+    };
+    fetchLinks();
+  }, []);
 
   const handleAddNew = () => {
     setCurrentLink(null);
@@ -34,7 +60,8 @@ export const SocialLinksManager: React.FC = () => {
     onOpen();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    await deleteDoc(doc(db, 'socialMediaLinks', id));
     setSocialLinks(socialLinks.filter(link => link.id !== id));
   };
 
@@ -46,20 +73,17 @@ export const SocialLinksManager: React.FC = () => {
     });
   };
 
-  const handleSubmit = () => {
-    if (formData.platform && formData.url) {
+  const handleSubmit = async () => {
+    if (formData.platform && formData.url && formData.icon) {
       if (currentLink) {
-        // Update existing link
-        setSocialLinks(socialLinks.map(link => 
+        const ref = doc(db, 'socialMediaLinks', currentLink.id);
+        await updateDoc(ref, formData);
+        setSocialLinks(socialLinks.map(link =>
           link.id === currentLink.id ? { ...link, ...formData } : link
         ));
       } else {
-        // Add new link
-        const newLink: SocialLink = {
-          id: Date.now().toString(),
-          ...formData,
-        };
-        setSocialLinks([...socialLinks, newLink]);
+        const docRef = await addDoc(collection(db, 'socialMediaLinks'), formData);
+        setSocialLinks([...socialLinks, { id: docRef.id, ...formData }]);
       }
       onClose();
     }
@@ -82,8 +106,8 @@ export const SocialLinksManager: React.FC = () => {
       <Card className="bg-beige dark:bg-[#1f1f1f]">
         <CardHeader className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-woodBrown dark:text-lightWood">Social Media Links</h2>
-          <Button 
-            color="primary" 
+          <Button
+            color="primary"
             endContent={<Icon icon="lucide:plus" />}
             onPress={handleAddNew}
           >
@@ -108,9 +132,9 @@ export const SocialLinksManager: React.FC = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <a 
-                      href={link.url} 
-                      target="_blank" 
+                    <a
+                      href={link.url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary underline"
                     >
@@ -121,20 +145,20 @@ export const SocialLinksManager: React.FC = () => {
                   <TableCell>
                     <div className="flex gap-2">
                       <Tooltip content="Edit link">
-                        <Button 
-                          isIconOnly 
-                          size="sm" 
-                          variant="light" 
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          variant="light"
                           onPress={() => handleEdit(link)}
                         >
                           <Icon icon="lucide:edit" />
                         </Button>
                       </Tooltip>
                       <Tooltip content="Delete link" color="danger">
-                        <Button 
-                          isIconOnly 
-                          size="sm" 
-                          variant="light" 
+                        <Button
+                          isIconOnly
+                          size="sm"
+                          variant="light"
                           color="danger"
                           onPress={() => handleDelete(link.id)}
                         >
@@ -157,26 +181,22 @@ export const SocialLinksManager: React.FC = () => {
               <ModalHeader>{currentLink ? 'Edit Social Link' : 'Add New Social Link'}</ModalHeader>
               <ModalBody>
                 <div className="space-y-4">
-                  <div>
-                    <Input
-                      label="Platform"
-                      name="platform"
-                      value={formData.platform}
-                      onChange={handleInputChange}
-                      placeholder="e.g. Instagram, Facebook, etc."
-                      variant="bordered"
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      label="URL"
-                      name="url"
-                      value={formData.url}
-                      onChange={handleInputChange}
-                      placeholder="https://..."
-                      variant="bordered"
-                    />
-                  </div>
+                  <Input
+                    label="Platform"
+                    name="platform"
+                    value={formData.platform}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Instagram, Facebook, etc."
+                    variant="bordered"
+                  />
+                  <Input
+                    label="URL"
+                    name="url"
+                    value={formData.url}
+                    onChange={handleInputChange}
+                    placeholder="https://..."
+                    variant="bordered"
+                  />
                   <div>
                     <p className="text-sm mb-2">Select Icon:</p>
                     <div className="grid grid-cols-3 gap-2">
@@ -186,7 +206,7 @@ export const SocialLinksManager: React.FC = () => {
                           variant={formData.icon === icon ? "solid" : "bordered"}
                           color={formData.icon === icon ? "primary" : "default"}
                           className="flex flex-col items-center p-2 h-auto"
-                          onPress={() => setFormData({...formData, icon})}
+                          onPress={() => setFormData({ ...formData, icon })}
                         >
                           <Icon icon={icon} width={24} height={24} />
                           <span className="text-xs mt-1">{platform}</span>

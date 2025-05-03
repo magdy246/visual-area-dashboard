@@ -28,9 +28,14 @@ export interface PricingPlan {
 export interface ParallaxSection {
   id: string;
   title: string;
-  subtitle: string;
-  description: string;
   backgroundUrl: string;
-  buttonText: string;
-  buttonUrl: string;
+}
+
+export interface ContactInfo {
+  id: string;
+  type: 'address' | 'phone' | 'email';
+  label: string;
+  value: string;
+  icon: string;
+  isMain: boolean;
 }
