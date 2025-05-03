@@ -17,8 +17,7 @@ type Project = {
   title: string;
   description: string;
   category: string;
-  imageUrl: string;
-  videoUrl?: string;
+  videoUrl: string;
 };
 
 export const ProjectsManager: React.FC = () => {
@@ -30,13 +29,11 @@ export const ProjectsManager: React.FC = () => {
     isOpen: isViewOpen,
     onOpen: onViewOpen,
     onOpenChange: onViewOpenChange,
-    onClose: onViewClose
   } = useDisclosure();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
-    imageUrl: '',
     videoUrl: '',
   });
 
@@ -51,7 +48,6 @@ export const ProjectsManager: React.FC = () => {
         title: doc.data().title || '',
         description: doc.data().description || '',
         category: doc.data().category || '',
-        imageUrl: doc.data().imageUrl || '',
         videoUrl: doc.data().videoUrl || ''
       })) as Project[];
       setProjects(data);
@@ -72,7 +68,6 @@ export const ProjectsManager: React.FC = () => {
       title: '',
       description: '',
       category: '',
-      imageUrl: '',
       videoUrl: ''
     });
     onOpen();
@@ -89,8 +84,7 @@ export const ProjectsManager: React.FC = () => {
       title: project.title,
       description: project.description,
       category: project.category,
-      imageUrl: project.imageUrl,
-      videoUrl: project.videoUrl || ''
+      videoUrl: project.videoUrl
     });
     onOpen();
   };
@@ -115,10 +109,44 @@ export const ProjectsManager: React.FC = () => {
     setFormData(prev => ({ ...prev, category: e.target.value }));
   };
 
-  const handleSubmit = async () => {
-    const { title, description, category, imageUrl, videoUrl } = formData;
+  const convertToEmbedUrl = (url: string): string => {
+    if (!url) return '';
+    // If it's already an embed URL, return as-is
+    if (url.includes('embed')) return url;
+    
+    // Handle YouTube URLs
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+      const match = url.match(regExp);
+      const videoId = (match && match[2].length === 11) ? match[2] : null;
+      
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    }
+    
+    // For other video URLs, try to return them directly
+    return url;
+  };
 
-    if (!title || !description || !category || !imageUrl) {
+  const getThumbnailUrl = (videoUrl: string): string => {
+    if (!videoUrl) return '';
+    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+      const match = videoUrl.match(regExp);
+      const videoId = (match && match[2].length === 11) ? match[2] : null;
+      
+      if (videoId) {
+        return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+      }
+    }
+    return '';
+  };
+
+  const handleSubmit = async () => {
+    const { title, description, category, videoUrl } = formData;
+
+    if (!title || !description || !category || !videoUrl) {
       alert("Please fill in all required fields");
       return;
     }
@@ -129,7 +157,6 @@ export const ProjectsManager: React.FC = () => {
           title,
           description,
           category,
-          imageUrl,
           videoUrl
         });
       } else {
@@ -137,7 +164,6 @@ export const ProjectsManager: React.FC = () => {
           title,
           description,
           category,
-          imageUrl,
           videoUrl
         });
       }
@@ -147,12 +173,6 @@ export const ProjectsManager: React.FC = () => {
       console.error("Error submitting project:", err);
       alert("Error saving project. Please try again.");
     }
-  };
-
-  const generateRandomImage = () => {
-    const randomId = Math.floor(Math.random() * 100);
-    const imageUrl = `https://img.heroui.chat/image/places?w=800&h=600&u=${randomId}`;
-    setFormData(prev => ({ ...prev, imageUrl }));
   };
 
   if (loading) {
@@ -180,7 +200,7 @@ export const ProjectsManager: React.FC = () => {
           ) : (
             <Table aria-label="Projects table">
               <TableHeader>
-                <TableColumn>PROJECT</TableColumn>
+                <TableColumn>THUMBNAIL</TableColumn>
                 <TableColumn>TITLE</TableColumn>
                 <TableColumn>CATEGORY</TableColumn>
                 <TableColumn>DESCRIPTION</TableColumn>
@@ -192,7 +212,7 @@ export const ProjectsManager: React.FC = () => {
                     <TableCell>
                       <div className="flex items-center">
                         <Image
-                          src={project.imageUrl}
+                          src={getThumbnailUrl(project.videoUrl)}
                           alt={project.title}
                           className="w-12 h-12 rounded-md object-cover"
                         />
@@ -268,7 +288,7 @@ export const ProjectsManager: React.FC = () => {
                 {currentProject ? 'Edit Project' : 'Add New Project'}
               </ModalHeader>
               <ModalBody>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-4">
                     <Input
                       label="Title"
@@ -304,47 +324,27 @@ export const ProjectsManager: React.FC = () => {
                       isRequired
                     />
                     <Input
-                      label="Video URL (optional)"
+                      label="Video URL"
                       name="videoUrl"
                       value={formData.videoUrl}
                       onChange={handleInputChange}
-                      placeholder="https://youtube.com/embed/..."
+                      placeholder="https://youtube.com/watch?v=... or https://youtu.be/..."
                       variant="bordered"
+                      isRequired
                     />
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex items-end gap-2">
-                      <Input
-                        label="Image URL"
-                        name="imageUrl"
-                        value={formData.imageUrl}
-                        onChange={handleInputChange}
-                        placeholder="https://..."
-                        variant="bordered"
-                        className="flex-1"
-                        isRequired
-                      />
-                      <Button
-                        color="primary"
-                        variant="flat"
-                        onPress={generateRandomImage}
-                      >
-                        Generate
-                      </Button>
-                    </div>
-                    {formData.imageUrl && (
-                      <div className="mt-2">
-                        <p className="text-sm mb-2">Preview:</p>
-                        <div className="rounded-lg overflow-hidden">
-                          <Image
-                            src={formData.imageUrl}
-                            alt="Preview"
-                            className="w-full h-48 object-cover"
-                          />
-                        </div>
+                  {formData.videoUrl && (
+                    <div className="mt-4">
+                      <p className="text-sm mb-2">Preview:</p>
+                      <div className="rounded-lg overflow-hidden">
+                        <Image
+                          src={getThumbnailUrl(formData.videoUrl)}
+                          alt="Video thumbnail"
+                          className="w-full h-48 object-cover"
+                        />
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </ModalBody>
               <ModalFooter>
@@ -376,27 +376,15 @@ export const ProjectsManager: React.FC = () => {
                 </Chip>
               </ModalHeader>
               <ModalBody>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Image
-                      src={currentProject?.imageUrl || ''}
-                      alt={currentProject?.title || ''}
-                      className="w-full h-64 object-cover rounded-lg"
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="aspect-w-16 aspect-h-9">
+                    <iframe
+                      src={convertToEmbedUrl(currentProject?.videoUrl || '')}
+                      className="w-full h-96 rounded-lg"
+                      title="Project video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
                     />
-                    {currentProject?.videoUrl && (
-                      <div className="mt-4">
-                        <h3 className="font-medium mb-2">Video Preview</h3>
-                        <div className="aspect-w-16 aspect-h-9">
-                          <iframe
-                            src={currentProject.videoUrl}
-                            className="w-full h-64 rounded-lg"
-                            title="Project video"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
                   <div>
                     <h3 className="font-medium mb-2">Description</h3>
