@@ -53,63 +53,69 @@ export default function App() {
           color="primary"
           variant="underlined"
           classNames={{
-            tabList: "gap-6",
+            base: "w-full",
+            tabList: "gap-0 md:gap-6 overflow-x-auto",
             cursor: "bg-gradient-wood dark:bg-gradient-wood",
-            tab: "max-w-fit px-0 h-12",
+            tab: "max-w-fit px-3 md:px-4 h-12 text-sm md:text-base relative",
           }}
         >
           <Tab
             key="social"
             title={
-              <div className="flex items-center gap-2">
-                <Icon icon="lucide:share-2" />
-                <span>Social Links</span>
+              <div className="flex items-center gap-1 md:gap-2">
+                <Icon icon="lucide:share-2" className="text-sm md:text-base" />
+                <span>Social</span>
               </div>
             }
+            className="border-r sm:border-r-0 border-gray-300 dark:border-gray-600 last:border-r-0"
           >
             <SocialLinksManager />
           </Tab>
           <Tab
             key="projects"
             title={
-              <div className="flex items-center gap-2">
-                <Icon icon="lucide:briefcase" />
+              <div className="flex items-center gap-1 md:gap-2">
+                <Icon icon="lucide:briefcase" className="text-sm md:text-base" />
                 <span>Projects</span>
               </div>
             }
+            className="border-r sm:border-r-0 border-gray-300 dark:border-gray-600 last:border-r-0"
           >
             <ProjectsManager />
           </Tab>
           <Tab
             key="pricing"
             title={
-              <div className="flex items-center gap-2">
-                <Icon icon="lucide:tag" />
+              <div className="flex items-center gap-1 md:gap-2">
+                <Icon icon="lucide:tag" className="text-sm md:text-base" />
                 <span>Pricing</span>
               </div>
             }
+            className="border-r sm:border-r-0 border-gray-300 dark:border-gray-600 last:border-r-0"
           >
             <PricingManager />
           </Tab>
           <Tab
             key="parallax"
             title={
-              <div className="flex items-center gap-2">
-                <Icon icon="lucide:layers" />
-                <span>Parallax Section</span>
+              <div className="flex items-center gap-1 md:gap-2">
+                <Icon icon="lucide:layers" className="text-sm md:text-base" />
+                <span>Parallax</span>
               </div>
             }
+            className="border-r sm:border-r-0 border-gray-300 dark:border-gray-600 last:border-r-0"
           >
             <ParallaxManager />
           </Tab>
           <Tab
             key="contact"
             title={
-              <div className="flex items-center gap-2">
-                <Icon icon="lucide:map-pin" />
-                <span>Contact Us</span>
+              <div className="flex items-center gap-1 md:gap-2">
+                <Icon icon="lucide:map-pin" className="text-sm md:text-base" />
+                <span>Contact</span>
               </div>
             }
+            className="border-r sm:border-r-0 border-gray-300 dark:border-gray-600 last:border-r-0"
           >
             <ContactManager />
           </Tab>
