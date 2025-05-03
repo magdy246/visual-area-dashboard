@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTheme } from "@heroui/use-theme";
 import { Navbar, NavbarBrand, NavbarContent, NavbarItem, Link, Button, Tabs, Tab } from "@heroui/react";
 import { Icon } from '@iconify/react';
