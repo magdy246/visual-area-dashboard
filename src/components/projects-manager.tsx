@@ -26,6 +26,12 @@ export const ProjectsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
+  const {
+    isOpen: isViewOpen,
+    onOpen: onViewOpen,
+    onOpenChange: onViewOpenChange,
+    onClose: onViewClose
+  } = useDisclosure();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -62,14 +68,19 @@ export const ProjectsManager: React.FC = () => {
 
   const handleAddNew = () => {
     setCurrentProject(null);
-    setFormData({ 
-      title: '', 
-      description: '', 
-      category: '', 
-      imageUrl: '', 
-      videoUrl: '' 
+    setFormData({
+      title: '',
+      description: '',
+      category: '',
+      imageUrl: '',
+      videoUrl: ''
     });
     onOpen();
+  };
+
+  const handleView = (project: Project) => {
+    setCurrentProject(project);
+    onViewOpen();
   };
 
   const handleEdit = (project: Project) => {
@@ -106,7 +117,7 @@ export const ProjectsManager: React.FC = () => {
 
   const handleSubmit = async () => {
     const { title, description, category, imageUrl, videoUrl } = formData;
-    
+
     if (!title || !description || !category || !imageUrl) {
       alert("Please fill in all required fields");
       return;
@@ -115,18 +126,18 @@ export const ProjectsManager: React.FC = () => {
     try {
       if (currentProject) {
         await updateDoc(doc(db, "Projects", currentProject.id), {
-          title, 
-          description, 
-          category, 
-          imageUrl, 
+          title,
+          description,
+          category,
+          imageUrl,
           videoUrl
         });
       } else {
         await addDoc(collection(db, "Projects"), {
-          title, 
-          description, 
-          category, 
-          imageUrl, 
+          title,
+          description,
+          category,
+          imageUrl,
           videoUrl
         });
       }
@@ -170,6 +181,7 @@ export const ProjectsManager: React.FC = () => {
             <Table aria-label="Projects table">
               <TableHeader>
                 <TableColumn>PROJECT</TableColumn>
+                <TableColumn>TITLE</TableColumn>
                 <TableColumn>CATEGORY</TableColumn>
                 <TableColumn>DESCRIPTION</TableColumn>
                 <TableColumn>ACTIONS</TableColumn>
@@ -178,18 +190,22 @@ export const ProjectsManager: React.FC = () => {
                 {projects.map((project) => (
                   <TableRow key={project.id}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Image 
-                          src={project.imageUrl} 
-                          alt={project.title} 
-                          className="w-12 h-12 rounded-md object-cover" 
+                      <div className="flex items-center">
+                        <Image
+                          src={project.imageUrl}
+                          alt={project.title}
+                          className="w-12 h-12 rounded-md object-cover"
                         />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
                         <span className="font-medium">{project.title}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Chip 
-                        color={project.category === 'Video' ? 'primary' : 'success'} 
+                      <Chip
+                        color={project.category === 'Video' ? 'primary' : 'success'}
                         variant="flat"
                       >
                         {project.category}
@@ -200,22 +216,34 @@ export const ProjectsManager: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        <Tooltip content="View project">
+                          <Button
+                            className='text-blue-600 dark:text-blue-400'
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            onPress={() => handleView(project)}
+                          >
+                            <Icon icon="lucide:eye" />
+                          </Button>
+                        </Tooltip>
                         <Tooltip content="Edit project">
-                          <Button 
-                            isIconOnly 
-                            size="sm" 
-                            variant="light" 
+                          <Button
+                            className='text-yellow-600 dark:text-yellow-400'
+                            isIconOnly
+                            size="sm"
+                            variant="light"
                             onPress={() => handleEdit(project)}
                           >
                             <Icon icon="lucide:edit" />
                           </Button>
                         </Tooltip>
                         <Tooltip content="Delete project" color="danger">
-                          <Button 
-                            isIconOnly 
-                            size="sm" 
-                            variant="light" 
-                            color="danger" 
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="danger"
                             onPress={() => handleDelete(project.id)}
                           >
                             <Icon icon="lucide:trash" />
@@ -231,6 +259,7 @@ export const ProjectsManager: React.FC = () => {
         </CardBody>
       </Card>
 
+      {/* Edit/Add Modal */}
       <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="2xl">
         <ModalContent>
           {(onClose) => (
@@ -295,9 +324,9 @@ export const ProjectsManager: React.FC = () => {
                         className="flex-1"
                         isRequired
                       />
-                      <Button 
-                        color="primary" 
-                        variant="flat" 
+                      <Button
+                        color="primary"
+                        variant="flat"
                         onPress={generateRandomImage}
                       >
                         Generate
@@ -306,11 +335,11 @@ export const ProjectsManager: React.FC = () => {
                     {formData.imageUrl && (
                       <div className="mt-2">
                         <p className="text-sm mb-2">Preview:</p>
-                        <div className="border rounded-lg overflow-hidden">
-                          <Image 
-                            src={formData.imageUrl} 
-                            alt="Preview" 
-                            className="w-full h-48 object-cover" 
+                        <div className="rounded-lg overflow-hidden">
+                          <Image
+                            src={formData.imageUrl}
+                            alt="Preview"
+                            className="w-full h-48 object-cover"
                           />
                         </div>
                       </div>
@@ -324,6 +353,60 @@ export const ProjectsManager: React.FC = () => {
                 </Button>
                 <Button color="primary" onPress={handleSubmit}>
                   {currentProject ? 'Update' : 'Add'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* View Modal */}
+      <Modal isOpen={isViewOpen} onOpenChange={onViewOpenChange} size="2xl">
+        <ModalContent>
+          {(onViewClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                {currentProject?.title}
+                <Chip
+                  color={currentProject?.category === 'Video' ? 'primary' : 'success'}
+                  variant="flat"
+                  size="sm"
+                >
+                  {currentProject?.category}
+                </Chip>
+              </ModalHeader>
+              <ModalBody>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Image
+                      src={currentProject?.imageUrl || ''}
+                      alt={currentProject?.title || ''}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                    {currentProject?.videoUrl && (
+                      <div className="mt-4">
+                        <h3 className="font-medium mb-2">Video Preview</h3>
+                        <div className="aspect-w-16 aspect-h-9">
+                          <iframe
+                            src={currentProject.videoUrl}
+                            className="w-full h-64 rounded-lg"
+                            title="Project video"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-2">Description</h3>
+                    <p className="whitespace-pre-line">{currentProject?.description}</p>
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="primary" onPress={onViewClose}>
+                  Close
                 </Button>
               </ModalFooter>
             </>

@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Card, CardBody, CardHeader, Button, Input, Table, TableHeader, TableColumn,
   TableBody, TableRow, TableCell, Tooltip, Modal, ModalContent,
-  ModalHeader, ModalBody, ModalFooter, useDisclosure
+  ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip
 } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import { SocialLink } from '../types/data-types';
@@ -21,6 +21,12 @@ export const SocialLinksManager: React.FC = () => {
   const [socialLinks, setSocialLinks] = React.useState<SocialLink[]>([]);
   const [currentLink, setCurrentLink] = React.useState<SocialLink | null>(null);
   const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
+  const { 
+    isOpen: isViewOpen, 
+    onOpen: onViewOpen, 
+    onOpenChange: onViewOpenChange, 
+    onClose: onViewClose 
+  } = useDisclosure();
   const [formData, setFormData] = React.useState({
     platform: '',
     url: '',
@@ -48,6 +54,11 @@ export const SocialLinksManager: React.FC = () => {
       icon: '',
     });
     onOpen();
+  };
+
+  const handleView = (link: SocialLink) => {
+    setCurrentLink(link);
+    onViewOpen();
   };
 
   const handleEdit = (link: SocialLink) => {
@@ -144,8 +155,20 @@ export const SocialLinksManager: React.FC = () => {
                   <TableCell>{link.icon}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
+                      <Tooltip content="View link">
+                        <Button
+                        className='text-blue-600 dark:text-blue-400'
+                          isIconOnly
+                          size="sm"
+                          variant="light"
+                          onPress={() => handleView(link)}
+                        >
+                          <Icon icon="lucide:eye" />
+                        </Button>
+                      </Tooltip>
                       <Tooltip content="Edit link">
                         <Button
+                        className='text-yellow-600 dark:text-yellow-400'
                           isIconOnly
                           size="sm"
                           variant="light"
@@ -174,6 +197,7 @@ export const SocialLinksManager: React.FC = () => {
         </CardBody>
       </Card>
 
+      {/* Edit/Add Modal */}
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
           {(onClose) => (
@@ -222,6 +246,55 @@ export const SocialLinksManager: React.FC = () => {
                 </Button>
                 <Button color="primary" onPress={handleSubmit}>
                   {currentLink ? 'Update' : 'Add'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* View Modal */}
+      <Modal isOpen={isViewOpen} onOpenChange={onViewOpenChange}>
+        <ModalContent>
+          {(onViewClose) => (
+            <>
+              <ModalHeader className="flex items-center gap-2">
+                <Icon icon={currentLink?.icon || ''} width={24} height={24} />
+                {currentLink?.platform}
+              </ModalHeader>
+              <ModalBody>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium mb-1">Platform</h3>
+                    <Chip variant="flat" color="primary">
+                      {currentLink?.platform}
+                    </Chip>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium mb-1">URL</h3>
+                    <a
+                      href={currentLink?.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline"
+                    >
+                      {currentLink?.url}
+                    </a>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium mb-1">Icon Identifier</h3>
+                    <div className="flex items-center gap-2">
+                      <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                        {currentLink?.icon}
+                      </code>
+                      <Icon icon={currentLink?.icon || ''} width={24} height={24} />
+                    </div>
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="primary" onPress={onViewClose}>
+                  Close
                 </Button>
               </ModalFooter>
             </>

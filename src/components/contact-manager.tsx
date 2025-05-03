@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { 
   Card, CardBody, CardHeader, Button, Input, Table, TableHeader, TableColumn, 
   TableBody, TableRow, TableCell, Tooltip, Modal, ModalContent, ModalHeader, 
-  ModalBody, ModalFooter, useDisclosure, Select, SelectItem, Checkbox, Spinner 
+  ModalBody, ModalFooter, useDisclosure, Select, SelectItem, Checkbox, Spinner,
+  Chip, Divider
 } from "@heroui/react";
 import { Icon } from '@iconify/react';
 import { 
@@ -21,8 +22,20 @@ interface ContactInfo {
 export const ContactManager: React.FC = () => {
   const [contacts, setContacts] = React.useState<ContactInfo[]>([]);
   const [currentContact, setCurrentContact] = React.useState<ContactInfo | null>(null);
+  const [viewingContact, setViewingContact] = React.useState<ContactInfo | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
+  const { 
+    isOpen: isEditModalOpen, 
+    onOpen: onEditModalOpen, 
+    onOpenChange: onEditModalOpenChange, 
+    onClose: onEditModalClose 
+  } = useDisclosure();
+  const { 
+    isOpen: isViewModalOpen, 
+    onOpen: onViewModalOpen, 
+    onOpenChange: onViewModalOpenChange, 
+    onClose: onViewModalClose 
+  } = useDisclosure();
   const [formData, setFormData] = React.useState({
     contactType: 'address' as 'address' | 'phone' | 'email',
     label: '',
@@ -61,7 +74,7 @@ export const ContactManager: React.FC = () => {
       content: '',
       isMain: false,
     });
-    onOpen();
+    onEditModalOpen();
   };
 
   const handleEdit = (contact: ContactInfo) => {
@@ -72,7 +85,12 @@ export const ContactManager: React.FC = () => {
       content: contact.content,
       isMain: contact.isMain,
     });
-    onOpen();
+    onEditModalOpen();
+  };
+
+  const handleView = (contact: ContactInfo) => {
+    setViewingContact(contact);
+    onViewModalOpen();
   };
 
   const handleDelete = async (id: string) => {
@@ -142,7 +160,7 @@ export const ContactManager: React.FC = () => {
           ...formData 
         }]);
       }
-      onClose();
+      onEditModalClose();
     } catch (error) {
       console.error('Error saving contact:', error);
     }
@@ -193,38 +211,55 @@ export const ContactManager: React.FC = () => {
               No contact information found. Add your first contact!
             </div>
           ) : (
-            <Table aria-label="Contact information table">
-              <TableHeader>
-                <TableColumn>TYPE</TableColumn>
-                <TableColumn>LABEL</TableColumn>
-                <TableColumn>CONTACT INFO</TableColumn>
-                <TableColumn>PRIMARY</TableColumn>
-                <TableColumn>ACTIONS</TableColumn>
+            <Table 
+              aria-label="Contact information table"
+              className="border-collapse w-full"
+              removeWrapper
+            >
+              <TableHeader className="[&>tr]:first:shadow-sm">
+                <TableColumn className="text-left py-3 px-4 font-semibold text-sm">
+                  TYPE
+                </TableColumn>
+                <TableColumn className="text-left py-3 px-4 font-semibold text-sm">
+                  LABEL
+                </TableColumn>
+                <TableColumn className="text-left py-3 px-4 font-semibold text-sm">
+                  CONTACT INFO
+                </TableColumn>
+                <TableColumn className="text-center py-3 px-4 font-semibold text-sm">
+                  PRIMARY
+                </TableColumn>
+                <TableColumn className="text-right py-3 px-4 font-semibold text-sm">
+                  ACTIONS
+                </TableColumn>
               </TableHeader>
-              <TableBody>
+              <TableBody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {contacts.map((contact) => (
-                  <TableRow key={contact.id}>
-                    <TableCell>
+                  <TableRow key={contact.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <TableCell className="py-3 px-4">
                       <div className="flex items-center gap-2">
-                        <Icon icon={getIconByType(contact.contactType)} className="text-primary" />
+                        <Icon 
+                          icon={getIconByType(contact.contactType)} 
+                          className="text-primary" 
+                        />
                         {getTypeLabel(contact.contactType)}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-3 px-4">
                       <span className="font-medium">{contact.label}</span>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-3 px-4">
                       {contact.contactType === 'email' ? (
                         <a 
                           href={`mailto:${contact.content}`} 
-                          className="text-primary underline"
+                          className="text-primary underline hover:text-primary-600 dark:hover:text-primary-400"
                         >
                           {contact.content}
                         </a>
                       ) : contact.contactType === 'phone' ? (
                         <a 
                           href={`tel:${contact.content}`} 
-                          className="text-primary underline"
+                          className="text-primary underline hover:text-primary-600 dark:hover:text-primary-400"
                         >
                           {contact.content}
                         </a>
@@ -232,24 +267,40 @@ export const ContactManager: React.FC = () => {
                         <span>{contact.content}</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-3 px-4 text-center">
                       {contact.isMain ? (
-                        <div className="flex items-center gap-1 text-primary">
-                          <Icon icon="lucide:check-circle" />
-                          <span className="text-xs">Primary</span>
-                        </div>
+                        <Chip 
+                          color="primary" 
+                          variant="flat" 
+                          size="sm"
+                          startContent={<Icon icon="lucide:check-circle" className="text-lg" />}
+                        >
+                          Primary
+                        </Chip>
                       ) : (
-                        <span>-</span>
+                        <span className="text-gray-400 dark:text-gray-500">-</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
+                    <TableCell className="py-3 px-4">
+                      <div className="flex justify-end gap-2">
+                        <Tooltip content="View details">
+                          <Button 
+                            isIconOnly 
+                            size="sm" 
+                            variant="light" 
+                            onPress={() => handleView(contact)}
+                            className="text-blue-600 dark:text-blue-400"
+                          >
+                            <Icon icon="lucide:eye" />
+                          </Button>
+                        </Tooltip>
                         <Tooltip content="Edit contact">
                           <Button 
                             isIconOnly 
                             size="sm" 
                             variant="light" 
                             onPress={() => handleEdit(contact)}
+                            className="text-yellow-600 dark:text-yellow-400"
                           >
                             <Icon icon="lucide:edit" />
                           </Button>
@@ -259,7 +310,7 @@ export const ContactManager: React.FC = () => {
                             isIconOnly 
                             size="sm" 
                             variant="light" 
-                            color="danger"
+                            color="danger" 
                             onPress={() => handleDelete(contact.id)}
                           >
                             <Icon icon="lucide:trash" />
@@ -275,7 +326,8 @@ export const ContactManager: React.FC = () => {
         </CardBody>
       </Card>
 
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+      {/* Edit/Add Modal */}
+      <Modal isOpen={isEditModalOpen} onOpenChange={onEditModalOpenChange}>
         <ModalContent>
           {(onClose) => (
             <>
@@ -359,6 +411,97 @@ export const ContactManager: React.FC = () => {
                 </Button>
                 <Button color="primary" onPress={handleSubmit}>
                   {currentContact ? 'Update' : 'Add'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* View Modal */}
+      <Modal isOpen={isViewModalOpen} onOpenChange={onViewModalOpenChange} size="lg">
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex items-center gap-2">
+                <Icon icon={viewingContact ? getIconByType(viewingContact.contactType) : 'lucide:info'} 
+                  className="text-primary text-xl" />
+                <span>Contact Details</span>
+              </ModalHeader>
+              <ModalBody>
+                {viewingContact && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Type</h4>
+                        <p className="text-lg font-medium flex items-center gap-2">
+                          <Icon icon={getIconByType(viewingContact.contactType)} />
+                          {getTypeLabel(viewingContact.contactType)}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Label</h4>
+                        <p className="text-lg font-medium">{viewingContact.label}</p>
+                      </div>
+                    </div>
+
+                    <Divider />
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Contact Information</h4>
+                      {viewingContact.contactType === 'email' ? (
+                        <a 
+                          href={`mailto:${viewingContact.content}`} 
+                          className="text-lg text-primary hover:underline flex items-center gap-2"
+                        >
+                          <Icon icon="lucide:mail" />
+                          {viewingContact.content}
+                        </a>
+                      ) : viewingContact.contactType === 'phone' ? (
+                        <a 
+                          href={`tel:${viewingContact.content}`} 
+                          className="text-lg text-primary hover:underline flex items-center gap-2"
+                        >
+                          <Icon icon="lucide:phone" />
+                          {viewingContact.content}
+                        </a>
+                      ) : (
+                        <p className="text-lg flex items-start gap-2">
+                          <Icon icon="lucide:map-pin" className="mt-1 flex-shrink-0" />
+                          <span>{viewingContact.content}</span>
+                        </p>
+                      )}
+                    </div>
+
+                    <Divider />
+
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Status</h4>
+                      {viewingContact.isMain ? (
+                        <Chip 
+                          color="primary" 
+                          variant="flat" 
+                          size="lg"
+                          startContent={<Icon icon="lucide:check-circle" className="text-xl" />}
+                        >
+                          Primary Contact
+                        </Chip>
+                      ) : (
+                        <Chip 
+                          variant="flat" 
+                          size="lg"
+                          startContent={<Icon icon="lucide:info" className="text-xl" />}
+                        >
+                          Secondary Contact
+                        </Chip>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button color="primary" onPress={onClose}>
+                  Close
                 </Button>
               </ModalFooter>
             </>
